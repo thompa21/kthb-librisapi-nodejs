@@ -37,31 +37,30 @@ apiRoutes.get('/', function(req, res) {
 });
 
 apiRoutes.get("/librisholding/", VerifyToken, function(req , res, next){
-
 	
-	
+	console.log(req.body.bib.network_number.indexOf('(LIBRIS)'))
+	//Finns "(LIBRIS)"=
+	/*
+	if(req.body.bib.network_number.indexOf('(LIBRIS)') !== -1 ) {
+		res.json({"currentbibid" : req.body.bib.network_number[req.body.bib.network_number.indexOf('(LIBRIS)')]});
+	}
+	*/
 	for (let k = 0; k < req.body.bib.network_number.length; k++) {
-		if(req.body.bib.network_number[k] != '') {
-			if(req.body.bib.network_number[k].indexOf('(LIBRIS)') !== -1 ) {
-				//sök på librismärkt id i första hand
-				currentid = req.body.bib.network_number[k].substr(8, req.body.bib.network_number[k].length)
-				/*
-				response4 = await libris.findHoldinguri(req.body.bib.network_number[k].substr(8, req.body.bib.network_number[k].length),'bibid')
-				if(response4.data.totalItems > 0){
-					break;
-				}
-				*/
-				res.json({"currenbibid" : currentid});
-				//break;
-			} else {
-				if(req.body.bib.network_number[k].indexOf('(') === -1 ) {
-					currentid = req.body.bib.network_number[k]
-					res.json({"currentlibrisid" : currentid});
-					//break;
-				}
-				//response4 = await libris.findHoldinguri(librisidarr[k],'libris3')
-			}
+		if(req.body.bib.network_number[k].indexOf('(LIBRIS)') !== -1 ) {
+			currentid = req.body.bib.network_number[k]
+			res.json({"currentbibid" : currentid});
+			break;
 		}
+		//response4 = await libris.findHoldinguri(librisidarr[k],'libris3')
+	}
+	//Finns ett värde som saknar "("?
+	for (let k = 0; k < req.body.bib.network_number.length; k++) {
+		if(req.body.bib.network_number[k].indexOf('(') === -1 ) {
+			currentid = req.body.bib.network_number[k]
+			res.json({"currentlibrisid" : currentid});
+			break;
+		}
+		//response4 = await libris.findHoldinguri(librisidarr[k],'libris3')
 	}
 	
 
