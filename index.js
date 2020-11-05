@@ -13,8 +13,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 //CORS
-var allowedOrigins = ['https://localhost:3000',
-					  'https://localhost:4200',
+var allowedOrigins = ['http://localhost:3000',
+					  'http://localhost:4200',
                       'https://apps.lib.kth.se'];
 app.use(cors({
   origin: function(origin, callback){
