@@ -18,7 +18,8 @@ const getToken = () => axios({
     }
 })
 
-const getEtag = (id) => axios({
+const getEtag = (id) => {
+    return axios({
     method:"GET",
     url : API_URL + id,
     headers: {
@@ -28,7 +29,8 @@ const getEtag = (id) => axios({
     params: {
         x: 's'
     }
-})
+    })
+}
 
 const updateHolding = (id, etag, token, json_payload) => axios({
     method:"PUT",

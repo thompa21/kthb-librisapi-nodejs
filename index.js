@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const jwt = require("jsonwebtoken");
 const VerifyToken = require('./VerifyToken');
 const libris = require('./libris')
+const cors = require('cors');
 const app = express();
 
 const config = {}
@@ -12,22 +13,66 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 //CORS
-app.use(function (req, res, next) {
-	var whitelist = ['kth.se', 'lib.kth.se', 'apps.lib.kth.se', 'apps-ref.lib.kth.se']
-	/*  
-	var origin = req.get('origin');
-	whitelist.forEach(function(val, key){
-		if (origin.indexOf(val) > -1){
-			res.setHeader('Access-Control-Allow-Origin', origin);
-		}
-	});
-	*/
-	res.setHeader('Access-Control-Allow-Origin', '*');
-	res.setHeader("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS,POST,PUT");
-	res.setHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, contentType,Content-Type, Accept, Authorization, x-access-token");
-	next();
-});
+var allowedOrigins = ['https://localhost:3000',
+                      'https://apps.lib.kth.se'];
+app.use(cors({
+  origin: function(origin, callback){
+    // allow requests with no origin 
+    // (like mobile apps or curl requests)
+    if(!origin) return callback(null, true);
+    if(allowedOrigins.indexOf(origin) === -1){
+      var msg = 'The CORS policy for this site does not ' +
+                'allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  exposedHeaders: ['Authorization'],
+  methods: "GET,PUT,POST,DELETE"
+}));
 
+async function deletebyholding(holdinguri, res, req) {
+	if(holdinguri.data.totalItems > 0){
+		//gå igenom items och hitta "@type": "Instance"
+		for (let i = 0; i < holdinguri.data.items.length; i++) {
+			if (holdinguri.data.items[i]["@type"] == "Instance") {
+				if (typeof holdinguri.data.items[i]['@reverse'] !== 'undefined') {
+					//Endast de som är KTH-innehav(SIGEL)
+					for (let j = 0; j < holdinguri.data.items[i]['@reverse'].itemOf.length; j++) {
+						if(holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/T'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Te'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Tct'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Ta'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Tdig'){
+							try {
+								const etag = await libris.getEtag(holdinguri.data.items[i]['@reverse'].itemOf[j]['@id'])
+								const deleteholding = await libris.deleteHolding(holdinguri.data.items[i]['@reverse'].itemOf[j]['@id'], etag.headers.etag, access_token)
+								res.json({"holding" : "Deleted"});
+								break;
+							}
+							catch (e) {
+								//TODO Övriga fel?
+								if(e.response.status == 410) {
+									res.json({"holding" : "Resurs hittades inte, id: "  + req.params.id});
+									break;
+								};
+								if(e.response.status == 403) {
+									res.json({"holding" : "You don't have the permission to access the requested resource, id: "  + req.params.id});
+									break;
+								};
+							}
+						}
+					}
+				} else {
+					res.json({"holding" : "No reverse, id: " + req.params.id});
+				}
+				break;
+			}
+		}
+	} else {
+		res.json({"holding" : "Hittades inte, id: " + req.params.id});
+	}
+}
 
 var apiRoutes = express.Router();
 
@@ -35,97 +80,37 @@ apiRoutes.get('/', function(req, res) {
 	res.send('Hello! The API is at ' + req.headers.host + '/libris/api/v1');
 });
 
-apiRoutes.get("/librisholding/", VerifyToken, async function(req , res, next){
-	
-	let currentid = "";
-	//Finns bibid? "(LIBRIS)"
-	for (let k = 0; k < req.body.bib.network_number.length; k++) {
-		if(req.body.bib.network_number[k].indexOf('(LIBRIS)') !== -1 ) {
-			currentid = req.body.bib.network_number[k].substr(8, req.body.bib.network_number[k].length);
-			res.json({"currentbibid" : currentid});
-			holdinguri = await libris.findHoldinguri(currentid,'bibid')
-			break;
-		}
-	}
-
-	//Inget bibid hittades
-	if (currentid == "") {
-		//Finns ett värde som saknar "("? Då anses det vara ett "libris3" id
-		for (let k = 0; k < req.body.bib.network_number.length; k++) {
-			if(req.body.bib.network_number[k].indexOf('(') === -1 ) {
-				currentid = req.body.bib.network_number[k]
-				res.json({"currentlibrisid" : currentid});
-				holdinguri = await libris.findHoldinguri(currentid,'libris3')
-				break;
-			}	
-		}
-	}
-
-	if(holdinguri.data.totalItems > 0){
-		for (let j = 0; j < holdinguri.data.items[0]['@reverse'].itemOf.length; j++) {
-			if(holdinguri.data.items[0]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/' + process.env.SIGEL){	
-				console.log(holdinguri.data.items[0]['@reverse'].itemOf[j]['@id'])
-				const etag = await libris.getEtag(holdinguri.data.items[0]['@reverse'].itemOf[j]['@id'])
-				console.log(etag.headers.etag)
-				//const deleteholding = await libris.deleteHolding(holdinguri.data.items[0]['@reverse'].itemOf[j]['@id'], etag.headers.etag, access_token)
-				//console.log(deleteholding.data)
-			}
-		}
-	} else {
-		console.log(holdinguri)
-		console.log('No holding found!!! id:' + currentid)
-	}
-	
+apiRoutes.get("/librishhhhhholding/", VerifyToken, async function(req , res, next){
 });
 
 apiRoutes.get("/librisholding/:librisid/", VerifyToken, function(req, res, next){
-    
 });
 
+/* Create holding */
 apiRoutes.post("/librisholding", VerifyToken, function(req, res) {
 	
 });
 
-apiRoutes.delete("/librisholding/", VerifyToken, async function(req , res, next){
-	let currentid = "";
-	//Finns bibid? "(LIBRIS)"
-	for (let k = 0; k < req.body.bib.network_number.length; k++) {
-		if(req.body.bib.network_number[k].indexOf('(LIBRIS)') !== -1 ) {
-			currentid = req.body.bib.network_number[k].substr(8, req.body.bib.network_number[k].length);
-			res.json({"currentbibid" : currentid});
-			holdinguri = await libris.findHoldinguri(currentid,'bibid')
-			break;
-		}
-	}
+/* Delete holding from bibid */
+apiRoutes.delete("/librisholding/bibid/:id", VerifyToken, async function(req , res, next){
+	const response = await libris.getToken()
+	access_token = response.data.access_token
+	console.log("Delete start")
+	holdinguri = await libris.findHoldinguri(req.params.id,'bibid')
+	deletebyholding(holdinguri, res, req)
+	console.log("Delete end")
+	console.log()
+});
 
-	//Inget bibid hittades
-	if (currentid == "") {
-		//Finns ett värde som saknar "("? Då anses det vara ett "libris3" id
-		for (let k = 0; k < req.body.bib.network_number.length; k++) {
-			if(req.body.bib.network_number[k].indexOf('(') === -1 ) {
-				currentid = req.body.bib.network_number[k]
-				res.json({"currentlibrisid" : currentid});
-				holdinguri = await libris.findHoldinguri(currentid,'libris3')
-				break;
-			}	
-		}
-	}
-
-	if(holdinguri.data.totalItems > 0){
-		for (let j = 0; j < holdinguri.data.items[0]['@reverse'].itemOf.length; j++) {
-			if(holdinguri.data.items[0]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/' + process.env.SIGEL){	
-				console.log(holdinguri.data.items[0]['@reverse'].itemOf[j]['@id'])
-				const etag = await libris.getEtag(holdinguri.data.items[0]['@reverse'].itemOf[j]['@id'])
-				console.log(etag.headers.etag)
-				//const deleteholding = await libris.deleteHolding(holdinguri.data.items[0]['@reverse'].itemOf[j]['@id'], etag.headers.etag, access_token)
-				//console.log(deleteholding.data)
-			}
-		}
-	} else {
-		console.log(holdinguri)
-		console.log('No holding found!!! id:' + currentid)
-	}
-	
+/* Delete holding from libris 3 id */
+apiRoutes.delete("/librisholding/libris3/:id", VerifyToken, async function(req , res, next){
+	const response = await libris.getToken()
+    access_token = response.data.access_token
+	console.log("Delete start")
+	holdinguri = await libris.findHoldinguri(req.params.id,'libris3')
+	deletebyholding(holdinguri, res, req)
+	console.log("Delete end")
+	console.log()
 });
 
 app.use('/libris/api/v1', apiRoutes);
