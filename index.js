@@ -53,6 +53,7 @@ async function deletebyholding(holdinguri, res, req) {
 							}
 							catch (e) {
 								//TODO Övriga fel?
+								/*
 								if(e.response.status == 410) {
 									res.json({"holding" : "Resurs hittades inte, id: "  + req.params.id});
 									break;
@@ -65,6 +66,17 @@ async function deletebyholding(holdinguri, res, req) {
 									res.json({"holding" : "Error deleting, id: "  + req.params.id});
 									break;
 								};
+								*/
+								switch(e.response.status) {
+									case 410:
+										res.json({"holding" : "Resurs hittades inte, id: "  + req.params.id});
+										break;
+									case 403:
+										res.json({"holding" : "You don't have the permission to access the requested resource, id: "  + req.params.id});
+										break;
+									default:
+										res.json({"holding" : "Error deleting, id: "  + req.params.id});
+								}
 							}
 						}
 					}
