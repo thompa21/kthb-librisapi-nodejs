@@ -64,6 +64,7 @@ async function deletebyholding(holdinguri, res, req) {
 									default:
 										res.json({"holding" : "Error deleting, id: "  + req.params.id});
 								}
+								break;
 							}
 						}
 					}
