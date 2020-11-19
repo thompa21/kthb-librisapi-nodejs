@@ -61,6 +61,10 @@ async function deletebyholding(holdinguri, res, req) {
 									res.json({"holding" : "You don't have the permission to access the requested resource, id: "  + req.params.id});
 									break;
 								};
+								if(e.response.status == 404) {
+									res.json({"holding" : "Error deleting, id: "  + req.params.id});
+									break;
+								};
 							}
 						}
 					}
