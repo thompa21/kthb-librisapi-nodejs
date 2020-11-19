@@ -102,7 +102,7 @@ apiRoutes.delete("/librisholding/bibid/:id", VerifyToken, async function(req , r
 	access_token = response.data.access_token
 	console.log("Delete start")
 	holdinguri = await libris.findHoldinguri(req.params.id,'bibid')
-	deletebyholding(holdinguri, res, req)
+	deleteuri = await deletebyholding(holdinguri, res, req)
 	console.log("Delete end")
 	console.log()
 });
@@ -113,7 +113,7 @@ apiRoutes.delete("/librisholding/libris3/:id", VerifyToken, async function(req ,
     access_token = response.data.access_token
 	console.log("Delete start")
 	holdinguri = await libris.findHoldinguri(req.params.id,'libris3')
-	deletebyholding(holdinguri, res, req)
+	deleteuri = await deletebyholding(holdinguri, res, req)
 	console.log("Delete end")
 	console.log()
 });
