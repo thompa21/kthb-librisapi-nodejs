@@ -46,6 +46,7 @@ async function deletebyholding(holdinguri, res, req) {
 						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Ta'
 						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Tdig'){
 							try {
+								console.log(holdinguri.data.items[i]['@reverse'].itemOf[j]['@id'])
 								const etag = await libris.getEtag(holdinguri.data.items[i]['@reverse'].itemOf[j]['@id'])
 								const deleteholding = await libris.deleteHolding(holdinguri.data.items[i]['@reverse'].itemOf[j]['@id'], etag.headers.etag, access_token)
 								res.json({"holding" : "Deleted"});
@@ -53,20 +54,6 @@ async function deletebyholding(holdinguri, res, req) {
 							}
 							catch (e) {
 								//TODO Övriga fel?
-								/*
-								if(e.response.status == 410) {
-									res.json({"holding" : "Resurs hittades inte, id: "  + req.params.id});
-									break;
-								};
-								if(e.response.status == 403) {
-									res.json({"holding" : "You don't have the permission to access the requested resource, id: "  + req.params.id});
-									break;
-								};
-								if(e.response.status == 404) {
-									res.json({"holding" : "Error deleting, id: "  + req.params.id});
-									break;
-								};
-								*/
 								switch(e.response.status) {
 									case 410:
 										res.json({"holding" : "Resurs hittades inte, id: "  + req.params.id});
