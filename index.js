@@ -88,10 +88,15 @@ apiRoutes.get('/', function(req, res) {
 apiRoutes.get("/librishhhhhholding/", VerifyToken, async function(req , res, next){
 });
 
-apiRoutes.get("/librisholding/:librisid/", VerifyToken, async function(req, res, next){
+apiRoutes.get("/librisholding/:type/:librisid/", VerifyToken, async function(req, res, next){
 	const response = await libris.getToken()
-    access_token = response.data.access_token
-	holdinguri = await libris.findHoldinguri(req.params.librisid,'bibid')
+	access_token = response.data.access_token
+	if (req.params.librisid == 'bibid') {
+		holdinguri = await libris.findHoldinguri(req.params.librisid,'bibid')
+	} else {
+		holdinguri = await libris.findHoldinguri(req.params.librisid,'libris3')
+	}
+	
 	if(holdinguri.data.totalItems > 0){
 		//gå igenom items och hitta "@type": "Instance"
 		for (let i = 0; i < holdinguri.data.items.length; i++) {
