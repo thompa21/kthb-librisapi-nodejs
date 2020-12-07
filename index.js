@@ -88,7 +88,51 @@ apiRoutes.get('/', function(req, res) {
 apiRoutes.get("/librishhhhhholding/", VerifyToken, async function(req , res, next){
 });
 
-apiRoutes.get("/librisholding/:librisid/", VerifyToken, function(req, res, next){
+apiRoutes.get("/librisholding/:librisid/", VerifyToken, async function(req, res, next){
+	const response = await libris.getToken()
+    access_token = response.data.access_token
+	holdinguri = await libris.findHoldinguri(req.params.librisid,'bibid')
+	if(holdinguri.data.totalItems > 0){
+		//gå igenom items och hitta "@type": "Instance"
+		for (let i = 0; i < holdinguri.data.items.length; i++) {
+			if (holdinguri.data.items[i]["@type"] == "Instance") {
+				if (typeof holdinguri.data.items[i]['@reverse'] !== 'undefined') {
+					//Endast de som är KTH-innehav(SIGEL)
+					for (let j = 0; j < holdinguri.data.items[i]['@reverse'].itemOf.length; j++) {
+						if(holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/T'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Te'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Tct'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Ta'
+						|| holdinguri.data.items[i]['@reverse'].itemOf[j].heldBy['@id'] == 'https://libris.kb.se/library/Tdig'){
+							try {
+								res.json(holdinguri.data.items[i]);
+								break;
+							}
+							catch (e) {
+								//TODO Övriga fel?
+								switch(e.response.status) {
+									case 410:
+										res.json({"holding" : "Resurs hittades inte, id: "  + req.params.id});
+										break;
+									case 403:
+										res.json({"holding" : "You don't have the permission to access the requested resource, id: "  + req.params.id});
+										break;
+									default:
+										res.json({"holding" : "Error, id: "  + req.params.id});
+								}
+								break;
+							}
+						}
+					}
+				} else {
+					res.json({"holding" : "No reverse, id: " + req.params.id});
+				}
+				break;
+			}
+		}
+	} else {
+		res.json({"holding" : "Hittades inte, id: " + req.params.id});
+	}
 });
 
 /* Create holding */
