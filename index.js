@@ -91,7 +91,9 @@ apiRoutes.get("/librishhhhhholding/", VerifyToken, async function(req , res, nex
 apiRoutes.get("/librisholding/:type/:librisid/", VerifyToken, async function(req, res, next){
 	const response = await libris.getToken()
 	access_token = response.data.access_token
-	if (req.params.librisid == 'bibid') {
+	console.log(req.params.librisid)
+	console.log(req.params.type)
+	if (req.params.type == 'bibid') {
 		holdinguri = await libris.findHoldinguri(req.params.librisid,'bibid')
 	} else {
 		holdinguri = await libris.findHoldinguri(req.params.librisid,'libris3')
