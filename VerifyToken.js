@@ -37,7 +37,7 @@ QMvPRMO6xf4W1+wn8kG/ejLif+acanJeRoDdYkNfw4p9AL1MB/9trvalg+KfX2Mp
             console.log('verified');
             next();
         } catch (e) {
-            return res.status(401).send({ auth: false, message: 'Failed to authenticate token, ' + err.message });
+            return res.status(401).send({ auth: false, message: 'Failed to authenticate token, ' + e.message });
         } 
           
     } else {
