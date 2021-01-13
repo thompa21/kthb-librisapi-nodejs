@@ -6,7 +6,7 @@ function verifyToken(req, res, next) {
     if (!token)
         return res.status(403).send({ auth: false, message: 'No token provided.' });
     
-    if(req.headers['x-access-token'] || req.headers['authorization']) {
+    if(req.headers['x-access-token']) {
         //JWT
         jwt.verify(token, process.env.SECRET, function(err, decoded) {
             if (err)
@@ -32,7 +32,8 @@ QMvPRMO6xf4W1+wn8kG/ejLif+acanJeRoDdYkNfw4p9AL1MB/9trvalg+KfX2Mp
 1wIDAQAB
 -----END PUBLIC KEY-----`
         try {
-            const verified = jwt.verify(tokenValue, publicKey, {algorithm: 'RS256'});
+            token = token.slice(7, token.length);
+            const verified = jwt.verify(token, publicKey, {algorithm: 'RS256'});
             console.log('verified');
             next();
         } catch (e) {
