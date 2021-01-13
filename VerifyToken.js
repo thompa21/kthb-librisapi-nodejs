@@ -33,6 +33,7 @@ QMvPRMO6xf4W1+wn8kG/ejLif+acanJeRoDdYkNfw4p9AL1MB/9trvalg+KfX2Mp
 -----END PUBLIC KEY-----`
         try {
             token = token.slice(7, token.length);
+            console.log('token: ' + token);
             const verified = jwt.verify(token, publicKey, {algorithm: 'RS256'});
             console.log('verified');
             next();
