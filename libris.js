@@ -62,6 +62,7 @@ const findHoldinguri = (id, type) => {
     if (type == 'bibid') {
         apiurl = API_URL + 'find.jsonld?meta.controlNumber=' + id //+ '&@reverse.itemOf.heldBy.@id=https://libris.kb.se/library/Te'
     }
+    console.log(apiurl)
     return axios({
         method:"GET",
         url : apiurl,
